@@ -1,0 +1,42 @@
+name: TechCorp Payments CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Postman CLI
+        run: |
+          curl -o- "https://dl-cli.pstmn.io/install/linux64.sh" | sh
+
+      - name: Postman CLI Login
+        run: postman login --with-api-key ${{ secrets.POSTMAN_API_KEY }}
+
+      - name: Run TechCorp Payments Tests
+        run: |
+          postman collection run ${{ secrets.POSTMAN_COLLECTION_ID }} \
+            --environment ${{ secrets.POSTMAN_ENVIRONMENT_ID }} \
+            --reporters cli,junit \
+            --reporter-junit-export results/report.xml
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: results/
